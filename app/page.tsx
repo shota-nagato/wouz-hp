@@ -1,3 +1,3 @@
 export default function Home() {
-  return <main>auto deploy</main>
+  return <main>slack test deploy</main>
 }
