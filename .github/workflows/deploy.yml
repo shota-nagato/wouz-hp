@@ -75,7 +75,7 @@ jobs:
       - run: corepack enable
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ needs.setup.outputs.aws_region }}
           role-to-assume: ${{ needs.setup.outputs.deploy_role }}
