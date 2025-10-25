@@ -64,6 +64,7 @@ jobs:
           echo "deploy_role=${{ vars.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
 
   build-and-deploy:
+    name: Release to ${{ needs.setenv.outputs.environment }}
     needs: setup
     runs-on: ubuntu-latest
     defaults:
