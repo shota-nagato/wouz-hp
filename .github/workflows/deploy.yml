@@ -11,25 +11,81 @@ permissions:
   contents: read
 
 jobs:
+  setenv:
+    name: Set Environment Context
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.setenv.outputs.environment }}
+    steps:
+      - name: Fail if not on allowed branch
+        run: |
+          echo "Current branch: ${{ github.ref_name }}"
+          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "staging" ]]; then
+            echo "❌ このワークフローは 'main' または 'staging' ブランチでのみ実行できます。"
+            exit 1
+          fi
+      - name: Determine environment
+        id: setenv
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          else
+            echo "environment=stg" >> $GITHUB_OUTPUT
+          fi
+
+  setup:
+    name: Export Variables
+    runs-on: ubuntu-latest
+    needs: setenv
+    environment: ${{ needs.setenv.outputs.environment }}
+    outputs:
+      app_env: ${{ steps.setenv.outputs.app_env }}
+      aws_region: ${{ steps.setenv.outputs.aws_region }}
+      next_bucket: ${{ steps.setenv.outputs.next_bucket }}
+      cloudfront_id: ${{ steps.setenv.outputs.cloudfront_id }}
+      deploy_role: ${{ steps.setenv.outputs.deploy_role }}
+    steps:
+      - name: Determine environment and export shared env vars
+        id: setenv
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "app_env=prod" >> $GITHUB_OUTPUT
+          else
+            echo "app_env=dev" >> $GITHUB_OUTPUT
+          fi
+
+          # 🌎 AWSリージョン（東京リージョン）を設定
+          echo "aws_region=ap-northeast-1" >> $GITHUB_OUTPUT
+
+          # 🌱 GitHub Environment（stg / prod）に設定した variables を読み込む
+          echo "next_bucket=${{ vars.NEXT_BUCKET }}" >> $GITHUB_OUTPUT
+          echo "cloudfront_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" >> $GITHUB_OUTPUT
+          echo "deploy_role=${{ vars.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
+
   build-and-deploy:
     name: Release
-    environment: stg
+    needs: setup
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+      - run: corepack enable
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-region: ap-northeast-1
-          role-to-assume: ${{ secrets.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ needs.setup.outputs.aws_region }}
+          role-to-assume: ${{ needs.setup.outputs.deploy_role }}
+
+      - name: Set SHORT_SHA and show commit info
+        run: |
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+          echo "🚀 Deploying commit: $SHORT_SHA"
+          echo "🔍 Commit message: $(git log -1 --pretty=%B)"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -47,10 +103,10 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          aws s3 sync ./out s3://${{ vars.NEXT_BUCKET }} --delete
+          aws s3 sync ./out s3://${{ needs.setup.outputs.next_bucket }} --delete
 
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id ${{ needs.setup.outputs.cloudfront_id }} \
             --paths "/*"
