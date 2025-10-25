@@ -24,7 +24,7 @@ jobs:
       - run: corepack enable
 
       - name: Debug vars
-        run: echo "Next.js bucket is: ${{ vars.NEXT_BUCKET }}"
+        run: echo "Next.js bucket is ${{ vars.NEXT_BUCKET }}"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
