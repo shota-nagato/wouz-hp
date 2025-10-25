@@ -2,6 +2,9 @@ name: Deploy Next.js
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - staging
 
 permissions:
   id-token: write
@@ -60,6 +63,7 @@ jobs:
           echo "deploy_role=${{ vars.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
 
   build-and-deploy:
+    name: Release
     needs: setup
     runs-on: ubuntu-latest
     defaults:

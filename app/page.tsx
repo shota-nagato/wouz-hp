@@ -1,3 +1,3 @@
 export default function Home() {
-  return <main>aaa</main>
+  return <main>auto deploy</main>
 }
