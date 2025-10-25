@@ -60,7 +60,7 @@ jobs:
           # 🌱 GitHub Environment（stg / prod）に設定した variables を読み込む
           echo "next_bucket=${{ vars.NEXT_BUCKET }}" >> $GITHUB_OUTPUT
           echo "cloudfront_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" >> $GITHUB_OUTPUT
-          echo "deploy_role=${{ vars.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
+          echo "deploy_role=${{ secrets.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
 
   build-and-deploy:
     name: Release
