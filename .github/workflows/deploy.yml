@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - staging
-      - main
 
 permissions:
   id-token: write
@@ -64,7 +63,7 @@ jobs:
           echo "deploy_role=${{ vars.DEPLOY_ROLE_ARN }}" >> $GITHUB_OUTPUT
 
   build-and-deploy:
-    name: Release to ${{ needs.setenv.outputs.environment }}
+    name: Release
     needs: setup
     runs-on: ubuntu-latest
     defaults:
